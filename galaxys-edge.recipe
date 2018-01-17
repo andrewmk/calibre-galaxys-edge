@@ -24,7 +24,6 @@ class AdvancedUserRecipe1515196393(BasicNewsRecipe):
     extra_css = '.photo-caption { font-size: smaller }'
 
     def parse_index(self):
-        self.temp_files
         soup = self.index_to_soup('http://www.galaxysedge.com/')
         cover_image = soup.find('div', attrs={'class':'ci-img'})
         cover_image = cover_image.find('img')
