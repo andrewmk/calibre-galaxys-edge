@@ -1,17 +1,18 @@
 #!/usr/bin/env python2
 # vim:fileencoding=utf-8
-from __future__ import unicode_literals, division, absolute_import, print_function
-from calibre.web.feeds.news import BasicNewsRecipe
-from calibre.ptempfile import PersistentTemporaryDirectory
-from calibre.ptempfile import PersistentTemporaryFile
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import mechanize
+import re
+import shutil
 import urllib
-import tempfile
-import os
+
+from calibre.ptempfile import PersistentTemporaryDirectory, PersistentTemporaryFile
+from calibre.web.feeds.news import BasicNewsRecipe
+
 
 class AdvancedUserRecipe1515196393(BasicNewsRecipe):
-    title = "Galaxy's Edge"
+    title = "The Galaxy's Edge"
+    __author__ = 'andyh2000'
     delay = 2
     oldest_article = 7
     max_articles_per_feed = 100
@@ -19,7 +20,6 @@ class AdvancedUserRecipe1515196393(BasicNewsRecipe):
     language = 'en'
     encoding = 'utf8'
     no_stylesheets = True
-    temp_files = []
 
     extra_css = '.photo-caption { font-size: smaller }'
 
@@ -34,8 +34,8 @@ class AdvancedUserRecipe1515196393(BasicNewsRecipe):
         current_section = "Articles"
         current_articles = []
         feeds = []
-        br = mechanize.Browser()
-        dir = PersistentTemporaryDirectory()
+        br = self.get_browser()
+        self.ctdir = PersistentTemporaryDirectory()
         for x in toc.findAll(['li'], attrs={"class": re.compile(".*get_content.*")}):
             edwo = x.find('a')
             title = self.tag_to_string(edwo)
@@ -48,8 +48,7 @@ class AdvancedUserRecipe1515196393(BasicNewsRecipe):
             self.log('\t\tdata-post-id', post_id)
             data = urllib.urlencode({'action':'get_content', 'cat_id':cat_id, 'parent_id':parent_id, 'post_id':post_id})
             r=br.open('http://www.galaxysedge.com/wp-content/themes/galaxyedge/get_content.php', data)
-            content_file = PersistentTemporaryFile(suffix='.html',dir=dir)
-            self.temp_files.append(content_file.name)
+            content_file = PersistentTemporaryFile(suffix='.html', dir=self.ctdir)
             content_file.write(r.read())
             content_file.close()
             current_articles.append({'title': title, 'url':'file://' + content_file.name, 'description':'', 'date':''})
@@ -58,8 +57,6 @@ class AdvancedUserRecipe1515196393(BasicNewsRecipe):
 
         return feeds
 
-    def postprocess_book(self, oeb, opts, log):
+    def cleanup(self):
         self.log("Deleting temp files...")
-        for tempf in self.temp_files:
-            self.log("Removing " + tempf)
-            os.remove(tempf)
+        shutil.rmtree(self.ctdir)
